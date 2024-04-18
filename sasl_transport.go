@@ -44,7 +44,7 @@ func NewTSaslTransport(trans thrift.TTransport, host string, mechanismName strin
 		mechanism = gosasl.NewPlainMechanism(configuration["username"], configuration["password"])
 	} else if mechanismName == "GSSAPI" {
 		var err error
-		mechanism, err = gosasl.NewGSSAPIMechanism(configuration["service"])
+		mechanism, err = gosasl.NewGSSAPIMechanism(configuration["service"], configuration["hostname"])
 		if err != nil {
 			return nil, err
 		}

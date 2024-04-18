@@ -50,6 +50,7 @@ type Connection struct {
 type ConnectConfiguration struct {
 	Username             string
 	Principal            string
+	Hostname             string
 	Password             string
 	Service              string
 	HiveConfiguration    map[string]string
@@ -258,7 +259,7 @@ func innerConnect(ctx context.Context, host string, port int, auth string,
 				return nil, err
 			}
 		} else if auth == "KERBEROS" {
-			mechanism, err := gosasl.NewGSSAPIMechanism(configuration.Service)
+			mechanism, err := gosasl.NewGSSAPIMechanism(configuration.Service, configuration.Hostname)
 			if err != nil {
 				return nil, err
 			}
@@ -304,7 +305,10 @@ func innerConnect(ctx context.Context, host string, port int, auth string,
 				return
 			}
 		} else if auth == "KERBEROS" {
-			saslConfiguration := map[string]string{"service": configuration.Service}
+			saslConfiguration := map[string]string{
+				"service":  configuration.Service,
+				"hostname": configuration.Hostname,
+			}
 			transport, err = NewTSaslTransport(socket, host, "GSSAPI", saslConfiguration, configuration.MaxSize)
 			if err != nil {
 				return
@@ -684,7 +688,7 @@ func (c *Cursor) fetchIfEmpty(ctx context.Context) {
 	}
 }
 
-//RowMap returns one row as a map. Advances the cursor one
+// RowMap returns one row as a map. Advances the cursor one
 func (c *Cursor) RowMap(ctx context.Context) map[string]interface{} {
 	c.Err = nil
 	c.fetchIfEmpty(ctx)
