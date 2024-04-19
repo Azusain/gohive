@@ -8,6 +8,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"log"
+	"math/rand"
 	"net"
 	"os"
 	"reflect"
@@ -15,40 +16,51 @@ import (
 	"strings"
 	"testing"
 	"time"
-	"math/rand"
 )
 
 func init() {
-    rand.Seed(time.Now().UnixNano())
+	rand.Seed(time.Now().UnixNano())
 }
 
 var letters = []rune("abcdefghijklmnopqrstuvwxyz")
 
 func randSeq(n int) string {
-    b := make([]rune, n)
-    for i := range b {
-        b[i] = letters[rand.Intn(len(letters))]
-    }
-    return string(b)
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+	return string(b)
 }
 
 var tableId = 0
 var randName = randSeq(10)
 
 func TestConnectDefault(t *testing.T) {
-	transport := os.Getenv("TRANSPORT")
-	auth := os.Getenv("AUTH")
-	ssl := os.Getenv("SSL")
-	if auth != "KERBEROS" || transport != "binary" || ssl == "1" {
-		t.Skip("not testing this combination.");
-	}
-
 	configuration := NewConnectConfiguration()
 	configuration.Service = "hive"
-	connection, err := Connect("hs2.example.com", 10000, getAuth(), configuration)
+	configuration.Hostname = "EXAMPLE.COM"
+	connection, err := Connect("IPV4_ADDRESS", 10000, "KERBEROS", configuration)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	ctx := context.Background()
+	cursor := connection.Cursor()
+	cursor.Exec(ctx, "SHOW DATABASES")
+	if cursor.Err != nil {
+		log.Fatal(cursor.Err)
+	}
+
+	var s string
+	for cursor.HasMore(ctx) {
+		cursor.FetchOne(ctx, &s)
+		if cursor.Err != nil {
+			log.Fatal(cursor.Err)
+		}
+		log.Println(s)
+	}
+
+	cursor.Close()
 	connection.Close()
 }
 
@@ -1024,7 +1036,7 @@ func TestRowMapAllTypes(t *testing.T) {
 
 func TestRowMapAllTypesWithNull(t *testing.T) {
 	if os.Getenv("METASTORE_SKIP") != "1" {
-		t.Skip("skipping test because the local metastore is not working correctly.");
+		t.Skip("skipping test because the local metastore is not working correctly.")
 	}
 	connection, cursor := makeConnection(t, 1000)
 	prepareAllTypesTableWithNull(t, cursor)

@@ -140,9 +140,9 @@ func ConnectZookeeper(hosts string, auth string,
 }
 
 // Connect to hive server
-func Connect(host string, port int, auth string,
+func Connect(ipaddr string, port int, auth string,
 	configuration *ConnectConfiguration) (conn *Connection, err error) {
-	return innerConnect(context.TODO(), host, port, auth, configuration)
+	return innerConnect(context.TODO(), ipaddr, port, auth, configuration)
 }
 
 func parseHiveServer2Info(hsInfos []string) []map[string]string {
@@ -259,6 +259,9 @@ func innerConnect(ctx context.Context, host string, port int, auth string,
 				return nil, err
 			}
 		} else if auth == "KERBEROS" {
+			if configuration.Hostname == "" {
+				return nil, errors.Wrapf(err, "hostname must be set")
+			}
 			mechanism, err := gosasl.NewGSSAPIMechanism(configuration.Service, configuration.Hostname)
 			if err != nil {
 				return nil, err
@@ -305,6 +308,9 @@ func innerConnect(ctx context.Context, host string, port int, auth string,
 				return
 			}
 		} else if auth == "KERBEROS" {
+			if configuration.Hostname == "" {
+				return nil, errors.Wrapf(err, "hostname must be set")
+			}
 			saslConfiguration := map[string]string{
 				"service":  configuration.Service,
 				"hostname": configuration.Hostname,
